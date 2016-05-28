@@ -157,8 +157,8 @@ class Stream:
 
     def set_position(self, x, y, w, h):
 
-        w1 = w * 0.8
-        h1 = h * 0.8
+        w1 = w * 0.9
+        h1 = h * 0.9
         x1 = x + (w - w1) * 0.5
         y1 = y + (h - h1) * 0.5
 
@@ -168,7 +168,7 @@ class Stream:
             self.position = new_pos
             self.dirty_layout = True
 
-        self.title_object.set_position((x + 0.02 * w, y + h - 0.05 * h))
+        self.title_object.set_position((x + 0.01 * w, y + h - 0.03 * h))
 
 
     def invalidate(self):
