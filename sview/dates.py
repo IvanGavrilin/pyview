@@ -39,6 +39,7 @@ class Formatter:
 
     def __call__(self, x, pos=None):
 
+        #print("fmt.off {:,} {:,}".format(x, pos))
         if pos is None:
             return datetime.fromtimestamp(float(x)/1e6).strftime(r"  DATE:  %Y/%m/%d   %H:%M:%S.%f     ")
 
@@ -75,7 +76,7 @@ def fmt_ms(value):  return "%dms" % ((int(value)/1000)%1000,)
 def fmt_msf(value):  return "%.1fms" % (((int(value)/100)%10000)*0.1,)
 
 def fmt_def(value): return str(value)
-def fmt_ns(value):  return "%dns" % (int(value) % 1000,)
+def fmt_us(value):  return "%dus" % (int(value) % 1000,)
 
 def fmt_hms(value):
     return datetime.fromtimestamp(float(value)/1e6).strftime("%H:%M:%Ss")
@@ -101,11 +102,11 @@ def fmt_y(value):
 
 
 _step_limits= [
-    (1, fmt_ns),
-    (2, fmt_ns),
-    (5, fmt_ns),
-    (2*10, fmt_ns),
-    (5*10, fmt_ns),
+    (1, fmt_us),
+    (2, fmt_us),
+    (5, fmt_us),
+    (2*10, fmt_us),
+    (5*10, fmt_us),
     (1*100, fmt_msf),
     (2*100, fmt_msf),
     (5*100, fmt_msf),
@@ -188,8 +189,6 @@ class Locator:
     def tick_values(self, vmin, vmax):
         num = 10
         step = (vmax - vmin) / num
-
-        #print("step ", step)
 
         self.fmt = fmt_def
         for i in range(len(_step_limits)):
