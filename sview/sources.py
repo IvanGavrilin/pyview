@@ -40,12 +40,43 @@ class RandomUpdater:
         try:
             if not self.initialized:
                 self.initialized = True
-                self.sig_a = stream.create_line_channel("sig_a", color="#6699CC", drawstyle='steps-pre', axis='top', axis_weight=0.8)
-                self.sig_b = stream.create_line_channel("sig_b", color="#DD3477", drawstyle='steps-pre', axis='top', axis_weight=0.8, fillstyle='bottom')
+                self.sig_a = stream.create_line_channel("sig_a", color="#6699CC", drawstyle='steps-pre')
+                self.sig_b = stream.create_line_channel("sig_b", color="#DD3477", drawstyle='steps-pre', axis='2', axis_weight=0.99, fillstyle='bottom')
 
             now = datetime.datetime.now().timestamp() * 1e6
             self.sig_a.update_from_str(now, random.random())
             self.sig_b.update_from_str(now, random.random())
+
+        except Exception as e:
+            print("Exception: ", e)
+            print("======================================================================================")
+            print(traceback.format_exc())
+            print("======================================================================================")
+
+        stream.win.prepare_artists()
+
+class RandomUpdater2:
+    def __init__(self):
+        self.limit = 0.2
+        self.initialized = False
+
+    def is_update_needed(self, stream):
+        if not self.initialized:
+            return True
+        if random.random() < self.limit:
+            return True
+        return False
+
+    def update(self, stream):
+        try:
+            if not self.initialized:
+                self.initialized = True
+                self.sig_a = stream.create_line_channel("sig_a", color="#6699CC", drawstyle='steps-pre', linestyle = '--')
+                self.sig_b = stream.create_line_channel("sig_b", color="#DD3477", drawstyle='steps-pre', fillstyle='full')
+
+            now = datetime.datetime.now().timestamp() * 1e6
+            self.sig_a.update_from_str(now, random.random())
+            self.sig_b.update_from_str(now+1e5, random.random())
 
         except Exception as e:
             print("Exception: ", e)

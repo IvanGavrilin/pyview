@@ -22,59 +22,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import matplotlib.dates as mdates
 from sview.window import *
 from sview.sources import *
 
-import sys, getopt
-from os import path, stat, environ
+w = Window("pyview sample")
+s1 = w.create_stream(RandomUpdater(), None)
+s2 = w.create_stream(RandomUpdater(), None)
+s1.set_name("stream_name1")
+s2.set_name("stream_name2")
 
-program_name = "PYView 1.0"
-
-def usage():
-    print("Simple mode:")
-    print("./pyview PLBFILENAME")
-
-def normalize_path(path):
-    return path.replace("~", environ['HOME'], 100)
-
-def normalize_watch(p):
-    p = normalize_path(p)
-    if path.isdir(p):
-        return p + "/*"
-    return p
-
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "hwqt:", ["help", "watch", "time_window="])
-except getopt.GetoptError:
-    usage()
-    sys.exit(1)
-
-watch_mode = False
-time_window = None
-
-for opt, arg in opts:
-    if opt in ("-h", "--help"):
-        usage()
-        sys.exit()
-    elif opt in ("-w", "--watch"):
-        watch_mode = True
-    elif opt in ("-t", "--time_window"):
-        time_window = int(arg)
-
-if len(args) <= 0:
-    usage()
-    sys.exit(3)
-
-if len(args) == 1:
-    title = ". view " + args[0]
-else:
-    title = ". view mode"
-
-w = Window(program_name + title)
-for a in args:
-    a = normalize_path(a)
-    s = w.create_stream(FileUpdater(a), time_window)
-    s.set_name(path.basename(a))
+s3 = w.create_stream(RandomUpdater2(), None)
+s4 = w.create_stream(RandomUpdater2(), None)
+s3.set_name("stream_name3")
+s4.set_name("stream_name4")
 
 event_loop()
