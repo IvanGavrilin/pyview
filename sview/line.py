@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from matplotlib.lines import Line2D
+import datetime
 
 # Set the marker fill style
 # fillstyle: ['full' | 'left' | 'right' | 'bottom' | 'top' | 'none']
@@ -87,6 +88,9 @@ class Channel:
             new_value = float(line)
         else:
             new_value = line
+
+        if isinstance(tm, datetime.datetime):
+            tm = tm.timestamp() * 1e6
 
         dx = self.datax
         dy = self.datay
