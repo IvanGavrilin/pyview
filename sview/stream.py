@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import matplotlib.pyplot as plt
+import bisect
 from matplotlib.ticker import FuncFormatter
 
 from .line    import Channel as LineChannel
@@ -233,6 +234,56 @@ class Stream:
         if self.text_channels:
             for tc in self.text_channels:
                 tc.mouse_leave(event)
+
+    def set_xrange(self, xmin, xmax):
+
+
+        axs = {}
+
+        for ch in self.channels.values():
+            if isinstance(ch, LineChannel) or isinstance(ch, ScatterChannel):
+
+                aid = id(ch.axes)
+                if aid in axs:
+                    axs[aid].append(ch)
+                else:
+                    axs[aid] = [ch]
+
+
+        for axes, chs in axs.items():
+            first = True
+            maxy = 0
+            miny = 0
+
+            for ch in chs:
+                dx = ch.datax
+                dy = ch.datay
+
+                i = bisect.bisect_left(dx, xmin)
+                iend = bisect.bisect_right(dx, xmax)
+
+                if i > 0:
+                    i-=1
+
+                if iend < len(dx):
+                    iend+=1
+
+                while i < iend:
+
+                    if dy[i] is not None:
+                        if first:
+                            maxy = miny = dy[i]
+                            first = False
+                        else:
+                            maxy = max(maxy, dy[i])
+                            miny = min(miny, dy[i])
+                    i+=1
+
+            if not first:
+                chs[0].axes.set_ylim(miny - (maxy-miny)*0.05, maxy + (maxy-miny)*0.05)
+
+        self.axes[0].set_xlim(xmin, xmax)
+
 
 
     def scale_to_default(self):

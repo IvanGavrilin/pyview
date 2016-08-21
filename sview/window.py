@@ -30,6 +30,7 @@ mpl.rcParams['axes.facecolor'] = '#eee8d5'
 mpl.rcParams['axes.grid'] = 'True'
 mpl.rcParams['figure.facecolor'] = '#fdf6e3'
 mpl.rcParams['font.family'] = 'sans-serif'
+#plt.style.use('fivethirtyeight')
 
 from .stream import Stream
 
@@ -65,9 +66,8 @@ class Window:
         self.figure.canvas.mpl_connect('button_release_event', self.button_release)
 
         self.figure.canvas.mpl_connect('key_press_event',      self.key_press)
-        self.figure.canvas.mpl_connect('key_release_event',    self.key_release)
+        #self.figure.canvas.mpl_connect('key_release_event',    self.key_release)
 
-        self.right_button_pressed = False
         self.figure.canvas.set_window_title(title)
 
         if updater:
@@ -150,9 +150,6 @@ class Window:
         event.canvas.draw()
 
     def mouse_leave(self, event):
-        if not event.inaxes:
-            self.right_button_pressed = False
-            return
 
         event.inaxes.patch.set_facecolor("#EEE8D5")
         if event.inaxes.stream:
@@ -162,12 +159,8 @@ class Window:
     def mouse_wheel(self, event):
         if event.inaxes:
 
-            if self.right_button_pressed:
-                axis = event.inaxes.yaxis
-                pos  = event.ydata
-            else:
-                axis = event.inaxes.xaxis
-                pos  = event.xdata
+            axis = event.inaxes.xaxis
+            pos  = event.xdata
 
             vmin, vmax = axis.get_view_interval()
             interval = abs(vmax - vmin)
@@ -183,13 +176,9 @@ class Window:
             vmin = vmin + l1 * delta
             vmax = vmax - (1.0 - l1) * delta
 
-            if self.right_button_pressed:
-                event.inaxes.set_ylim(ymin=vmin, ymax=vmax)
-            else:
-                event.inaxes.set_xlim(xmin=vmin, xmax=vmax)
-
             if event.inaxes.stream:
                 event.inaxes.stream.on_zoomed()
+                event.inaxes.stream.set_xrange(vmin, vmax)
 
             event.canvas.draw()
 
@@ -203,18 +192,12 @@ class Window:
                 event.inaxes.links.open(event)
 
 
-    def key_release(self, event):
-        if not event.key:
-            self.right_button_pressed = False
-
     def key_press(self, event):
-
-        if event.key == 'shift':
-            self.right_button_pressed = True
 
         if event.inaxes and event.inaxes.stream:
             if event.key == 'h':
                 event.inaxes.stream.scale_to_default()
+                event.canvas.draw()
             elif event.key == ' ':
                 event.inaxes.links.open(event)
 

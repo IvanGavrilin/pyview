@@ -67,6 +67,10 @@ class Channel:
         self.stream = None
 
     def update_from_str(self, tm, line):
+
+        if isinstance(tm, datetime.datetime):
+            tm = tm.timestamp() * 1e6
+
         self.dirty = True
         self.datax.append(tm)
         self.datay.append(float(line))
