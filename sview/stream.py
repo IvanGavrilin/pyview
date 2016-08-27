@@ -22,7 +22,9 @@
 
 import matplotlib.pyplot as plt
 import bisect
+
 from matplotlib.ticker import FuncFormatter
+from matplotlib.transforms import Bbox
 
 from .line    import Channel as LineChannel
 from .scatter import Channel as ScatterChannel
@@ -31,18 +33,46 @@ from .dates   import Formatter, Locator
 
 from datetime import datetime, timedelta
 
+
+AXES_FONT_H = 20.0
+AXES_FONT_W = 60.0
+
 def _remove_arg(kw, arg):
     if arg in kw:
         del kw[arg]
 
 class _CustomFmt:
-    def __init__(self, fmt):
+    def __init__(self, fmt, skip_first):
         self.fmt = fmt
+        self.skip_first = skip_first
 
     def __call__(self, x, pos):
+        if self.skip_first and pos == 0:
+            print('slip', x, pos)
+            return ''
         return self.fmt % (x,)
 
 _gid = 1
+
+class AxesProxy:
+    def __init__(self, stream, ax):
+        self.stream = stream
+        self.ax = ax
+
+    def add_line(self, name, **kw):
+        kw['zorder'] = len(self.stream.channels)
+        return self.stream._create_channel(LineChannel, self.ax, name, **kw)
+
+    def add_scatter(self, name, **kw):
+        kw['zorder'] = len(self.stream.channels)
+        return self.stream._create_channel(ScatterChannel, self.ax, name, **kw)
+
+    def add_text_channel(self, name, **kw):
+        return self.stream._create_channel(TextChannel, self.ax, name, **kw)
+
+    def add_links_channel(self, name, **kw):
+        return self.stream._create_channel(LineChannel, self.ax, name, **kw)
+
 
 class Stream:
 
@@ -57,84 +87,50 @@ class Stream:
         a.links = None
         return a
 
-    def __init__(self, win, time_window):
-        self.channels = dict()
+    def __init__(self, win, title, time_window):
+        self.channels = {}
         self.win = win
         self.axes = []
-        self.axes.append(self.create_axes())
-        self.axes[0].weight = 1.0
-        self.axes[0].stream = self
-        self.axis_dict = {}
         self.time_window = time_window
-        self.title_object = win.figure.text(0.1, 0.1, "Nothing", size='medium', style='italic')
-        self.stream_name = 'Nothing'
 
-        loc = Locator()
-        formatter = Formatter(loc)
-        self.axes[0].xaxis.set_major_locator(loc)
-        self.axes[0].xaxis.set_major_formatter(formatter)
+        if title:
+            self.title_object = self.win.figure.text(0.1, 0.1, title, size='medium', style='italic')
+            self.title = title
+        else:
+            self.title_object = None
+
         #self.axes[0].xaxis_date(None)
         #self.ly = ax.axvline(color='k')
-        self.dirty_layout = True
-        self.position = [0, 0, 1, 1]
         self.text_channels = []
         self.last_tm = None
         self.custom_scale_till_time = None
 
         self.invalidate()
 
-    def _create_channel(self, type_v, name, **kw):
+    def add_axes(self, fmt, weight = 1.0, width_scale = 1.0):
+        self.axes.append(self.create_axes())
+        if len(self.axes) == 1:
+            loc = Locator()
+            formatter = Formatter(loc)
+            self.axes[0].xaxis.set_major_locator(loc)
+            self.axes[0].xaxis.set_major_formatter(formatter)
+
+        ax = self.axes[-1]
+        ax.weight = weight
+        ax.stream = self
+        ax.width_scale = width_scale
+        ax.yaxis.set_major_formatter(FuncFormatter(_CustomFmt(fmt, len(self.axes) > 1000)))
+        return AxesProxy(self, ax)
+
+    def _create_channel(self, type_v, ax, name, **kw):
         if name in self.channels:
             del self.channels[name]
-
-        if 'axis' in kw and kw['axis'] in self.axis_dict:
-
-            ax = self.axis_dict[kw['axis']]
-            del kw['axis']
-
-            _remove_arg(kw, 'axis_weight')
-
-        elif "axis_weight" in kw:
-            self.axes.append(self.create_axes())
-            ax = self.axes[-1]
-            ax.stream = self
-            ax.weight = float(kw["axis_weight"])
-            del kw["axis_weight"]
-
-            if "axis" in kw:
-                self.axis_dict[kw['axis']] = ax
-                del kw['axis']
-        else:
-            ax = self.axes[0]
-
-        if 'format' in kw:
-            ax.yaxis.set_major_formatter(FuncFormatter(_CustomFmt(kw['format'])))
-            del kw['format']
-        else:
-            ax.yaxis.set_major_formatter(FuncFormatter(_CustomFmt("%.f")))
 
         channel = type_v(self, ax, **kw)
         self.channels[name] = channel
         self.invalidate()
-        self.dirty_layout = True
         return channel
 
-    def create_line_channel(self, name, **kw):
-        kw['zorder'] = len(self.channels)
-        return self._create_channel(LineChannel, name, **kw)
-
-    def create_scatter_channel(self, name, **kw):
-        kw['zorder'] = len(self.channels)
-        return self._create_channel(ScatterChannel, name, **kw)
-
-    def create_text_channel(self, name, **kw):
-        t = self._create_channel(TextChannel, name, **kw)
-        self.text_channels.append(t)
-        return t
-
-    def create_links_channel(self, name, **kw):
-        t = self._create_channel(LinksChannel, name, **kw)
-        return t
 
     def destroy(self):
         for c in self.channels:
@@ -146,30 +142,51 @@ class Stream:
         self.axes = None
         self.channels = None
 
-    def set_name(self, txt):
-        self.title_object.set_text(txt)
-        self.stream_name = txt
-
     def on_zoomed(self):
-        self.custom_scale_till_time = datetime.now() + timedelta(0, 30)
-        self.title_object.set_text(self.stream_name + " Zoomed")
-        self.title_object.set_color('#FF0000')
+        if self.title_object:
+            self.custom_scale_till_time = datetime.now() + timedelta(0, 30)
+            self.title_object.set_text(self.title + " Zoomed")
+            self.title_object.set_color('#FF0000')
 
 
-    def set_position(self, x, y, w, h):
+    def set_position(self, x, y, w, h, abs_w, abs_h):
 
-        w1 = w * 0.9
-        h1 = h * 0.9
-        x1 = x + (w - w1) * 0.5
-        y1 = y + (h - h1) * 0.5
+        top_padding    = AXES_FONT_H/abs_h * 0.15
+        right_padding  = AXES_FONT_H/abs_h * 0.15
+        bottom_padding = AXES_FONT_H/abs_h
 
-        new_pos = (x1, y1, w1, h1)
+        axes_interval = AXES_FONT_H/abs_h * 0.1
 
-        if new_pos != self.position:
-            self.position = new_pos
-            self.dirty_layout = True
+        if self.title_object:
+            top_padding += AXES_FONT_H/abs_h * 1.1
+            self.title_object.set_position((x + AXES_FONT_W/abs_w * 3, y + (1.0 - AXES_FONT_H/abs_h) * h))
 
-        self.title_object.set_position((x + 0.01 * w, y + h - 0.03 * h))
+        total_weight = 0.0
+        for ax in self.axes:
+            total_weight += ax.weight
+
+        first = True
+        yc = y + bottom_padding
+        for ax in reversed(self.axes):
+            left_padding = AXES_FONT_W/abs_w * ax.width_scale
+            ax_h = (ax.weight / total_weight) * (h - top_padding - bottom_padding)
+            ax.set_position((x + left_padding, yc, w-left_padding-right_padding, ax_h - axes_interval))
+
+            if first:
+                first = False
+            else:
+                for o in ax.xaxis.get_ticklabels():
+                    o.set_visible(False)
+
+            clip_box = Bbox(((0, yc*abs_h), (abs_w, (yc + ax_h - axes_interval)*abs_h)))
+
+            for o in ax.yaxis.get_ticklabels():
+                o.set_clip_box(clip_box)
+
+            yc += ax_h
+
+        for a in self.axes:
+            a.relim()
 
 
     def invalidate(self):
@@ -179,22 +196,6 @@ class Stream:
     def prepare_artists(self):
 
         changed = False
-
-        if self.dirty_layout:
-
-            total_weight = 0.0
-            for ax in self.axes:
-                total_weight += ax.weight
-
-            yc = self.position[1]
-            for ax in reversed(self.axes):
-                h = ax.weight * self.position[3] / total_weight
-                ax.set_position((self.position[0], yc + h*0.005, self.position[2], h*0.99))
-                #ax.autoscale()
-                yc += h
-
-            self.dirty_layout = False
-            changed = True
 
         if self.dirty:
             for c in self.channels.values():
@@ -285,11 +286,11 @@ class Stream:
         self.axes[0].set_xlim(xmin, xmax)
 
 
-
     def scale_to_default(self):
-        self.custom_scale_till_time = None
-        self.title_object.set_text(self.stream_name)
-        self.title_object.set_color('#000000')
+        if self.title_object:
+            self.custom_scale_till_time = None
+            self.title_object.set_text(self.title)
+            self.title_object.set_color('#000000')
 
         if not self.time_window:
             for a in self.axes:

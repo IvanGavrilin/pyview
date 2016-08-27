@@ -54,7 +54,6 @@ class Window:
         self.figure = plt.figure()
         self.streams = []
         self.dirty = True
-        self.dirty_layout = True
 
         #self.figure.canvas.mpl_connect('draw_event',     self.draw_event)
         self.figure.canvas.mpl_connect('axes_enter_event',     self.mouse_enter)
@@ -68,6 +67,8 @@ class Window:
         self.figure.canvas.mpl_connect('key_press_event',      self.key_press)
         #self.figure.canvas.mpl_connect('key_release_event',    self.key_release)
 
+        self.figure.canvas.mpl_connect('resize_event',      self.resize_event)
+
         self.figure.canvas.set_window_title(title)
 
         if updater:
@@ -76,12 +77,11 @@ class Window:
         #    self.a = anim.FuncAnimation(self.figure, _ClosureWithArg(anim_func, self), frames=1, interval=200, repeat=True)
 
 
-    def create_stream(self, updater = None, time_window = None):
+    def create_stream(self, title = None, updater = None, time_window = None):
 
-        s = Stream(self, time_window)
+        s = Stream(self, title, time_window)
         self.streams.append(s)
         self.dirty = True
-        self.dirty_layout = True
 
         if updater:
             s.a = _MyAnim(self.figure, updater, interval=200, arg=s)
@@ -91,39 +91,34 @@ class Window:
 
     def destroy_stream(self, s):
         self.dirty = True
-        self.dirty_layout = True
         self.streams.remove(s)
         s.destroy()
 
     def invalidate(self):
         self.dirty = True
 
-    def calc_layout(self, streams, x, y, w, h):
+    def _calc_layout(self, streams, x, y, w, h, abs_w, abs_h):
         if len(streams) > 3:
             half = len(streams) // 2
             if h >= w*0.9:
-                self.calc_layout(streams[0:half], x, y+h/2, w, h/2)
-                self.calc_layout(streams[half:], x, y, w, h/2)
+                self._calc_layout(streams[0:half], x, y+h/2, w, h/2, abs_w, abs_h/2)
+                self._calc_layout(streams[half:], x, y, w, h/2, abs_w, abs_h/2)
             else:
-                self.calc_layout(streams[0:half], x, y, w/2, h)
-                self.calc_layout(streams[half:], x+w/2, y, w/2, h)
+                self._calc_layout(streams[0:half], x, y, w/2, h, abs_w/2, abs_h)
+                self._calc_layout(streams[half:], x+w/2, y, w/2, h, abs_w/2, abs_h)
         else:
             if len(streams) == 1:
-                streams[0].set_position(x, y, w, h)
+                streams[0].set_position(x, y, w, h, abs_w, abs_h)
             elif len(streams) == 2:
-                streams[0].set_position(x, y, w/2, h)
-                streams[1].set_position(x+w/2, y, w/2, h)
+                streams[0].set_position(x,     y, w/2, h, abs_w/2, abs_h)
+                streams[1].set_position(x+w/2, y, w/2, h, abs_w/2, abs_h)
             elif len(streams) == 3:
-                streams[0].set_position(x, y, w/3, h)
-                streams[1].set_position(x+w/3, y, w/3, h)
-                streams[2].set_position(x+w*2/3, y, w/3, h)
+                streams[0].set_position(x,       y, w/3, h, abs_w/3, abs_h)
+                streams[1].set_position(x+w/3,   y, w/3, h, abs_w/3, abs_h)
+                streams[2].set_position(x+w*2/3, y, w/3, h, abs_w/3, abs_h)
+
 
     def prepare_artists(self):
-
-        if self.dirty_layout:
-
-            self.calc_layout(self.streams, 0.0, 0.0, 1.0, 1.0)
-            self.dirty_layout = False
 
         #print("win.invalidate, ", self.dirty)
         if self.dirty:
@@ -190,6 +185,10 @@ class Window:
         if event.button == 2:
             if event.inaxes and event.inaxes.links:
                 event.inaxes.links.open(event)
+
+    def resize_event(self, event):
+        #print("resize_event", event.width, event.height)
+        self._calc_layout(self.streams, 0.0, 0.0, 1.0, 1.0, event.width, event.height)
 
 
     def key_press(self, event):
