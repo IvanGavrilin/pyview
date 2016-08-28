@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 
 import datetime
@@ -36,6 +36,7 @@ mpl.rcParams['patch.edgecolor'] = '#eeeeee'
 mpl.rcParams['figure.facecolor'] = '#e3e3e3'
 mpl.rcParams['font.family'] = 'sans-serif'
 #plt.style.use('fivethirtyeight')
+
 
 from .stream import Stream
 
@@ -206,6 +207,7 @@ class Window:
 
 
 def event_loop():
+    print("Use backend:", mpl.get_backend())
     for w in _all_windows:
         w.prepare_artists()
     plt.show()

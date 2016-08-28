@@ -41,14 +41,10 @@ def _remove_arg(kw, arg):
         del kw[arg]
 
 class _CustomFmt:
-    def __init__(self, fmt, skip_first):
+    def __init__(self, fmt):
         self.fmt = fmt
-        self.skip_first = skip_first
 
     def __call__(self, x, pos):
-        if self.skip_first and pos == 0:
-            print('slip', x, pos)
-            return ''
         return self.fmt % (x,)
 
 _gid = 1
@@ -88,14 +84,6 @@ class AxesProxy:
 class Stream:
 
     def create_axes(self):
-        global _gid
-        if self.axes:
-            a = self.win.figure.add_axes( (0, 0, 0.1, 0.1), gid = str(_gid), sharex = self.axes[0])
-        else:
-            a = self.win.figure.add_axes( (0, 0, 0.1, 0.1), gid = str(_gid))
-        a.tick_params(labelsize='small')
-        _gid += 1
-        a.links = None
         return a
 
     def __init__(self, win, title, time_window):
@@ -118,19 +106,48 @@ class Stream:
 
         self.invalidate()
 
+    def _format_coord(self, ax, x, y):
+        status = datetime.fromtimestamp(float(x)/1e6).strftime(r"DATE: %Y/%m/%d   %H:%M:%S.%f  ")
+
+        for ch in self.channels:
+            if isinstance(ch, LineChannel) or isinstance(ch, ScatterChannel):
+
+                dx = ch.datax
+                dy = ch.datay
+
+                i = bisect.bisect_left(dx, x)
+
+                if i < len(dx):
+                    status += "  {}: {:7}".format(ch.name, ch.axes.myfmt % (dy[i],))
+
+        return status
+
+
     def add_axes(self, fmt, weight = 1.0, width_scale = 1.0):
-        self.axes.append(self.create_axes())
+        global _gid
+        if self.axes:
+            ax = self.win.figure.add_axes( (0, 0, 0.1, 0.1), gid = str(_gid), sharex = self.axes[0])
+        else:
+            ax = self.win.figure.add_axes( (0, 0, 0.1, 0.1), gid = str(_gid))
+        ax.tick_params(labelsize='small')
+        self.axes.append(ax)
+        _gid += 1
+        ax.links = None
+
         if len(self.axes) == 1:
             loc = Locator()
             formatter = Formatter(loc)
             self.axes[0].xaxis.set_major_locator(loc)
             self.axes[0].xaxis.set_major_formatter(formatter)
 
-        ax = self.axes[-1]
         ax.weight = weight
         ax.stream = self
         ax.width_scale = width_scale
-        ax.yaxis.set_major_formatter(FuncFormatter(_CustomFmt(fmt, len(self.axes) > 1000)))
+
+        ax.format_coord = lambda x, y: self._format_coord(ax, x, y)
+
+        ax.yaxis.set_major_formatter(FuncFormatter(_CustomFmt(fmt)))
+        ax.myfmt = fmt
         return AxesProxy(self, ax)
 
     def _create_channel(self, type_v, ax, name, **kw):

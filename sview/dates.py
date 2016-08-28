@@ -26,7 +26,7 @@ import numpy as np
 from datetime import datetime
 
 _WEEKDAYS = "Sun|Mon|Tue|Wed|Thu|Fri|Sat".split("|")
-_MOSCOW_TZ_OFFSET = 4 * 60 * 60 * 1000 * 1000
+_MOSCOW_TZ_OFFSET = 3 * 60 * 60 * 1000 * 1000
 
 class Formatter:
     axis = None
@@ -41,7 +41,7 @@ class Formatter:
 
         #print("fmt.off {:,} {:,}".format(x, pos))
         if pos is None:
-            return datetime.fromtimestamp(float(x)/1e6).strftime(r"  DATE:  %Y/%m/%d   %H:%M:%S.%f     ")
+            return datetime.fromtimestamp(float(x)/1e6).strftime(r"DATE:  %Y/%m/%d   %H:%M:%S.%f     ")
 
         if x < 20:
             return "--"
