@@ -33,7 +33,6 @@ from .dates   import Formatter, Locator
 
 from datetime import datetime, timedelta
 
-
 AXES_FONT_H = 20.0
 AXES_FONT_W = 60.0
 
@@ -58,13 +57,25 @@ class AxesProxy:
     def __init__(self, stream, ax):
         self.stream = stream
         self.ax = ax
+        self.def_colors = ['#008fd5', '#fc4f30', '#e5ae38', '#6d904f', '#8b8b8b', '#810f7c']  # 538 style
+        #self.def_colors = ['#348ABD', '#A60628', '#7A68A6', '#467821', '#D55E00', '#CC79A7', '#56B4E9', '#009E73', '#F0E442', '#0072B2'] # bmh
+        self.cur_color = 0
+
+    def _set_color(self, kw):
+        if not 'color' in kw:
+            kw['color'] = self.def_colors[self.cur_color]
+            self.cur_color = (self.cur_color + 1) % len(self.def_colors)
+        elif isinstance(kw['color'], int):
+            kw['color'] = self.def_colors[kw['color'] % len(self.def_colors)]
 
     def add_line(self, name, **kw):
-        kw['zorder'] = len(self.stream.channels)
+        self._set_color(kw)
+        kw['zorder'] = len(self.stream.channels)+1
         return self.stream._create_channel(LineChannel, self.ax, name, **kw)
 
     def add_scatter(self, name, **kw):
-        kw['zorder'] = len(self.stream.channels)
+        self._set_color(kw)
+        kw['zorder'] = len(self.stream.channels)+1
         return self.stream._create_channel(ScatterChannel, self.ax, name, **kw)
 
     def add_text_channel(self, name, **kw):
@@ -88,7 +99,7 @@ class Stream:
         return a
 
     def __init__(self, win, title, time_window):
-        self.channels = {}
+        self.channels = []
         self.win = win
         self.axes = []
         self.time_window = time_window
@@ -123,12 +134,19 @@ class Stream:
         return AxesProxy(self, ax)
 
     def _create_channel(self, type_v, ax, name, **kw):
-        if name in self.channels:
-            del self.channels[name]
+        for c in self.channels:
+            if c.name == name:
+                raise Exception("Channel {} has been added already".format(name))
 
         channel = type_v(self, ax, **kw)
-        self.channels[name] = channel
+        channel.name = name
+        self.channels.append(channel)
+        channel.artist.set_label(name)
         self.invalidate()
+        legend = ax.legend(shadow=True, fancybox=True)
+        legend.zorder = 100
+        legend.get_frame().set_facecolor('#dfdfdf')
+
         return channel
 
 
@@ -198,7 +216,7 @@ class Stream:
         changed = False
 
         if self.dirty:
-            for c in self.channels.values():
+            for c in self.channels:
                 changed = c.prepare_artists() or changed
 
             self.dirty = False
@@ -241,7 +259,7 @@ class Stream:
 
         axs = {}
 
-        for ch in self.channels.values():
+        for ch in self.channels:
             if isinstance(ch, LineChannel) or isinstance(ch, ScatterChannel):
 
                 aid = id(ch.axes)

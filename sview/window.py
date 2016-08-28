@@ -26,9 +26,14 @@ import matplotlib.animation as anim
 
 import datetime
 
-mpl.rcParams['axes.facecolor'] = '#eee8d5'
+mpl.rcParams['axes.facecolor'] = '#d3d3d3'
+mpl.rcParams['axes.edgecolor'] = '#303030'
 mpl.rcParams['axes.grid'] = 'True'
-mpl.rcParams['figure.facecolor'] = '#fdf6e3'
+mpl.rcParams['grid.color'] = '#323232'
+mpl.rcParams['grid.linewidth'] = 0.5
+mpl.rcParams['patch.facecolor'] = 'blue'
+mpl.rcParams['patch.edgecolor'] = '#eeeeee'
+mpl.rcParams['figure.facecolor'] = '#e3e3e3'
 mpl.rcParams['font.family'] = 'sans-serif'
 #plt.style.use('fivethirtyeight')
 
@@ -46,6 +51,8 @@ class _MyAnim(anim.FuncAnimation):
             super(_MyAnim, self)._step(*args)
 
 
+_all_windows = []
+
 class Window:
     def draw_event(self, event):
         print("draw_event")
@@ -54,6 +61,7 @@ class Window:
         self.figure = plt.figure()
         self.streams = []
         self.dirty = True
+        _all_windows.append(self)
 
         #self.figure.canvas.mpl_connect('draw_event',     self.draw_event)
         self.figure.canvas.mpl_connect('axes_enter_event',     self.mouse_enter)
@@ -139,17 +147,13 @@ class Window:
         if not event.inaxes:
             return
 
-        event.inaxes.patch.set_facecolor("#EEE9CE")
         if event.inaxes.stream:
             event.inaxes.stream.mouse_enter(event)
-        event.canvas.draw()
 
     def mouse_leave(self, event):
 
-        event.inaxes.patch.set_facecolor("#EEE8D5")
         if event.inaxes.stream:
             event.inaxes.stream.mouse_leave(event)
-        event.canvas.draw()
 
     def mouse_wheel(self, event):
         if event.inaxes:
@@ -202,6 +206,8 @@ class Window:
 
 
 def event_loop():
+    for w in _all_windows:
+        w.prepare_artists()
     plt.show()
 
 
