@@ -118,7 +118,10 @@ class Stream:
                 i = bisect.bisect_left(dx, x)
 
                 if i < len(dx):
-                    status += "  {}: {:7}".format(ch.name, ch.axes.myfmt % (dy[i],))
+                    if dy[i] is not None:
+                        status += "  {}: {:7}".format(ch.name, ch.axes.myfmt % (dy[i],))
+                    else:
+                        status += "  {}: None".format(ch.name)
 
         return status
 
