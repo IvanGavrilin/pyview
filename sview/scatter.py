@@ -22,6 +22,8 @@
 
 # marker: see MPL doc
 
+import datetime
+
 _SUPPORTED_ARGS = dict(marker=1, size=1, color=1, alpha=1, zorder=1)
 _FLOAT_ARGS = dict(alpha=1, size=1)
 
