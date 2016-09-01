@@ -110,21 +110,21 @@ class Window:
         if len(streams) > 3:
             half = len(streams) // 2
             if h >= w*0.9:
-                self._calc_layout(streams[0:half], x, y+h/2, w, h/2, abs_w, abs_h/2)
-                self._calc_layout(streams[half:], x, y, w, h/2, abs_w, abs_h/2)
+                self._calc_layout(streams[0:half], x, y+h/2, w, h/2, abs_w, abs_h)
+                self._calc_layout(streams[half:], x, y, w, h/2, abs_w, abs_h)
             else:
-                self._calc_layout(streams[0:half], x, y, w/2, h, abs_w/2, abs_h)
-                self._calc_layout(streams[half:], x+w/2, y, w/2, h, abs_w/2, abs_h)
+                self._calc_layout(streams[0:half], x, y, w/2, h, abs_w, abs_h)
+                self._calc_layout(streams[half:], x+w/2, y, w/2, h, abs_w, abs_h)
         else:
             if len(streams) == 1:
                 streams[0].set_position(x, y, w, h, abs_w, abs_h)
             elif len(streams) == 2:
-                streams[0].set_position(x,     y, w/2, h, abs_w/2, abs_h)
-                streams[1].set_position(x+w/2, y, w/2, h, abs_w/2, abs_h)
+                streams[0].set_position(x,     y, w/2, h, abs_w, abs_h)
+                streams[1].set_position(x+w/2, y, w/2, h, abs_w, abs_h)
             elif len(streams) == 3:
-                streams[0].set_position(x,       y, w/3, h, abs_w/3, abs_h)
-                streams[1].set_position(x+w/3,   y, w/3, h, abs_w/3, abs_h)
-                streams[2].set_position(x+w*2/3, y, w/3, h, abs_w/3, abs_h)
+                streams[0].set_position(x,       y, w/3, h, abs_w, abs_h)
+                streams[1].set_position(x+w/3,   y, w/3, h, abs_w, abs_h)
+                streams[2].set_position(x+w*2/3, y, w/3, h, abs_w, abs_h)
 
 
     def prepare_artists(self):
