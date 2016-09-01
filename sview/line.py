@@ -42,6 +42,11 @@ class Channel:
         self.repeat = False
         self.last_tm = None
 
+        self.with_marker = False
+
+        if 'marker' in kw:
+            self.with_marker = True
+
         args = {}
         for k, v in kw.items():
             if k == 'repeat':
@@ -95,7 +100,7 @@ class Channel:
         dx = self.datax
         dy = self.datay
 
-        if len(dx) > 1 and dy[-1] == dy[-2] and dy[-1] == new_value:
+        if self.with_marker == False and len(dx) > 1 and dy[-1] == dy[-2] and dy[-1] == new_value:
             dx[-1] = tm
         else:
             dx.append(tm)
