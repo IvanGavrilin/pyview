@@ -331,8 +331,13 @@ class Stream:
             self.title_object.set_color('#000000')
 
         if not self.time_window:
+            dl = self.axes[0].dataLim
+            xwidth = (dl.x1 - dl.x0) * 0.01
+            self.axes[0].set_xlim(xmin=dl.x0 - xwidth, xmax=dl.x1 + xwidth)
             for a in self.axes:
-                a.autoscale()
+                dl = a.dataLim
+                yoff = (dl.y1 - dl.y0) * 0.03
+                a.set_ylim(ymin=dl.y0-yoff, ymax=dl.y1+yoff)
         else:
             dl = self.axes[0].dataLim
             xwidth = self.time_window*1000*1000
